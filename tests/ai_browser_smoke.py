@@ -35,6 +35,7 @@ def verify():
             page.goto(base)
             page.locator('#load-demo').click()
             page.locator('[data-view=connect]').first.click()
+            page.locator('#ai-mode').select_option('server')
             # Check fails cleanly when the service is configured but the user is unauthorized.
             page.locator('#check-ai').click()
             page.locator('#ai-connection-status').filter(has_text='접속 암호').wait_for()

@@ -6,9 +6,9 @@
 
 ## 직접 AI 분석 미리보기
 
-`/preview/`에 **앱에서 직접 AI 리뷰 실행** 기능을 추가했습니다. PDF를 넣고 범위를 선택하면 서버를 통해 OpenAI가 범위별로 심사합니다. 진행 상태·부분 실패·실패한 범위만 재시도를 지원합니다. 실제 실행에는 서버 API 키와 API 서버 배포가 필요하며 GitHub Pages만으로는 AI 호출을 제공할 수 없습니다.
+`/preview/`에서는 **OpenAI API 키를 직접 입력**하고 PDF·심사 범위를 선택하면 앱 안에서 리뷰를 받을 수 있습니다. 브라우저가 OpenAI 공식 API에 직접 요청하므로 GitHub Pages만으로 사용하며 Vercel 배포는 필요하지 않습니다. GPT-4.1과 GPT-4.1 mini를 지원합니다. 진행 상태·부분 실패·실패한 범위만 재시도를 제공합니다.
 
-[Vercel 연결과 키 설정 안내](docs/DIRECT-AI.md)를 따라 같은 저장소로 별도 미리보기 서버를 만들 수 있습니다. 서버 환경 변수는 `REVIEWER_API_KEY`, `REVIEWER_ACCESS_TOKEN`, `REVIEWER_MODEL`입니다. API 키를 채팅·GitHub·브라우저에 입력하지 마세요. 기본 `index.html`은 미리보기 확인 전까지 기존 ChatGPT 복사 방식으로 유지합니다. 아래 사용 설명은 현재 기본 앱 기준입니다.
+[미리보기 사용·API 키 안내](docs/DIRECT-AI.md): **AI 리뷰 실행 → OpenAI API 키 입력 → 연결 확인 → 선택 범위 분석 시작**. 키는 현재 탭에서만 사용하고 새로고침하면 지워지며 작업 파일·브라우저 저장소·주소·로그에 저장하지 않습니다. API 요금은 ChatGPT 구독과 별도입니다. 키를 채팅이나 GitHub 파일에 넣지 마세요. 별도 서버 연결도 선택할 수 있습니다. 기본 `index.html`은 기존 ChatGPT 복사 방식이며 아래 사용 설명은 이 기본 앱 기준입니다.
 
 ## 실제 리뷰 받기
 
@@ -35,7 +35,7 @@
 
 AI 응답의 `source_id`가 현재 원고·설정과 맞아야 보고서를 가져올 수 있습니다. 원고나 설정을 바꾸면 이전 결과를 닫습니다. 인용은 지정한 줄의 정확한 문자열과 비교합니다. 강점·보완 판정에 일치하는 인용이 없으면 판단 보류로 표시합니다. 누락된 평가 기준도 보류하고 알립니다. 이 확인은 **주장의 학술적 타당성, 수치의 정확성 또는 문헌의 존재를 검증한 것과 다릅니다**.
 
-외부 문헌 검색, 원자료 통계 재검정, OCR, 직접 AI API 호출은 구현하지 않았습니다. 실제 AI 리뷰는 사용자가 ChatGPT에서 실행하고 가져옵니다. 제공 자료로 확인하지 못한 문헌 최신성·독창성을 확정하지 않도록 요청합니다. 일부 발췌에 없는 내용을 전체 논문의 결함으로 단정하지 않습니다. 학위 통과·게재·안전을 보증하지 않습니다.
+외부 문헌 검색, 원자료 통계 재검정, OCR은 수행하지 않습니다. 기본 앱은 ChatGPT 응답을 가져오며 미리보기는 OpenAI API를 직접 호출합니다. 제공 자료로 확인하지 못한 문헌 최신성·독창성을 확정하지 않도록 요청합니다. 일부 발췌에 없는 내용을 전체 논문의 결함으로 단정하지 않습니다. 학위 통과·게재·안전을 보증하지 않습니다.
 
 ## PDF와 작업 파일
 
@@ -45,7 +45,7 @@ PDF는 브라우저에서 읽고 원본을 서버에 업로드하지 않습니�
 
 ## 개발과 빌드
 
-정적 웹앱이라 GitHub Pages에서 API 키·Python 서버 없이 실행합니다. PDF.js 모듈·문자 매핑·글꼴은 HTML에 포함합니다.
+정적 웹앱이라 GitHub Pages에서 실행합니다. PDF.js 모듈·문자 매핑·글꼴은 HTML에 포함합니다. 미리보기의 직접 AI 심사에는 사용자 API 키가 필요하며 자체 서버는 필요하지 않습니다. 수정본만 빌드하려면 `python build_preview.py`를 사용하세요. 아래 `build_web.py`는 기본 앱까지 교체합니다.
 
 ```sh
 python build_web.py
@@ -55,6 +55,8 @@ python -m http.server 8000 --bind 127.0.0.1
 - `review_ui.html`: 새 화면 원본.
 - `review_workbench.js`: 업로드, 범위 선택, 예비 점검, 심사 요청, 리뷰 파싱·근거 대조·보고서.
 - `review_schema.py`: 6개 리뷰 범위·36개 평가 기준·공통 심사 지침.
+- `review_ai.js`: 수동 키·선택 서버 연결, 범위별 실행·취소·재시도.
+- `review_model.mjs`: 브라우저·서버 공통 모델 요청·응답 검증.
 - `build_preview.py`: 기존 앱을 교체하지 않고 `preview/index.html`만 생성.
 - `build_web.py`: 기본 `index.html`, 미리보기, 기존 장별 `chapters/index.html` 생성.
 - `ui.html`, `reviewers.py`, `pdf_browser.js`: 기존 장별 도구와 공통 PDF 처리.
@@ -66,6 +68,9 @@ python -m http.server 8000 --bind 127.0.0.1
 ```sh
 .venv/bin/python -m unittest discover -s tests -v
 PYTHONPATH=.:tests python tests/review_browser_smoke.py
+PYTHONPATH=.:tests python tests/direct_ai_browser_smoke.py
+PYTHONPATH=.:tests python tests/ai_browser_smoke.py
+npm test
 PYTHONPATH=. python tests/browser_smoke.py
 ```
 
