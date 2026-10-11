@@ -1,10 +1,10 @@
 # 앱에서 직접 AI 리뷰 실행
 
-현재 변경은 [미리보기](https://semifinal02-debug.github.io/literature-reivewers/preview/)에 적용한다. 기본 `index.html`은 기존 ChatGPT 복사 방식으로 유지한다.
+[기본 웹앱](https://semifinal02-debug.github.io/literature-reivewers/)과 [미리보기](https://semifinal02-debug.github.io/literature-reivewers/preview/) 모두 직접 API 분석과 ChatGPT 응답 가져오기를 지원한다. PDF 업로드는 본문을 읽는 단계이며 AI 검토가 끝나거나 ChatGPT 답변을 가져온 뒤 보고서를 받을 수 있다.
 
 ## API 키를 직접 넣어 사용
 
-1. 미리보기에서 PDF를 선택하고 추출 본문·연구 설정을 확인한다. 필요한 장이나 페이지부터 사용할 수 있다.
+1. 웹앱에서 PDF를 선택하고 추출 본문·연구 설정을 확인한다. 필요한 장이나 페이지부터 사용할 수 있다.
 2. 연구 공백, 방법론, 결과, 사례, 안전, 기술·작업계획 중 필요한 범위를 선택한다.
 3. **AI 리뷰 실행**에서 기본 연결 방식 **OpenAI API 키 직접 입력**을 사용한다. [OpenAI에서 발급한 키](https://platform.openai.com/api-keys)를 **OpenAI API 키** 칸에 입력한다. 키를 채팅·GitHub 파일에 넣지 않는다.
 4. **GPT-4.1** 또는 **GPT-4.1 mini**를 선택하고 **연결 확인**을 누른다. 연결 확인은 원고 없이 선택 모델의 접근 권한만 확인한다. 제한된 권한의 키에는 Models 읽기와 Responses 쓰기 권한이 필요하다.
@@ -60,7 +60,7 @@ PDF 원본은 브라우저에서 읽으며 **분석 시작 시 추출한 본문�
 
 ## 개발 환경
 
-현재 클라우드에는 Node.js가 설치되어 있으며 외부 npm 의존성은 없다. 코드 수정 뒤 `python build_preview.py`로 미리보기와 공통 계약 JSON만 생성한다. `python build_web.py`는 기본 앱도 교체하므로 사용자 확인 전에는 실행하지 않는다.
+현재 클라우드에는 Node.js가 설치되어 있으며 외부 npm 의존성은 없다. 코드 수정 뒤 `python build_web.py`로 기본 앱·미리보기·공통 계약 JSON을 함께 갱신한다. 미리보기에만 변경을 적용할 때는 `python build_preview.py`를 사용한다.
 
 ```sh
 npm ci --ignore-scripts --cache /workspace/.npm-cache
