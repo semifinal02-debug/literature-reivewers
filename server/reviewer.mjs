@@ -40,7 +40,10 @@ export async function callModel(data,{env=process.env,fetchImpl=fetch,signal}={}
  catch(error){if(abort.aborted)throw new ApiError(504,'AI 응답 시간이 초과되었거나 요청이 취소되었습니다. 범위를 줄여 다시 실행하세요.','timeout');throw new ApiError(502,'AI 서비스에 연결하지 못했습니다. 서버의 네트워크 설정을 확인하세요.','upstream_unavailable');}
  if(!response.ok){
   if([401,403].includes(response.status))throw new ApiError(502,'서버의 AI API 키 또는 모델 접근 권한을 확인하세요.','provider_auth');
-  if(response.status===429)throw new ApiError(429,'AI 요청 한도 또는 API 크레딧을 확인하세요. 잠시 뒤 실패한 범위만 다시 실행할 수 있습니다.','provider_limit');
+  if(response.status===429){
+   let body;try{body=await response.json();}catch{}
+   const info=sharedModel.limitError(body);throw new ApiError(429,info.message,info.code);
+  }
   throw new ApiError(502,'AI 서비스가 요청을 처리하지 못했습니다. 모델 설정을 확인하거나 잠시 뒤 다시 실행하세요.','provider_error');
  }
  let body;try{body=await response.json();}catch{throw new ApiError(502,'AI 서비스의 응답 형식을 읽지 못했습니다.','invalid_response');}

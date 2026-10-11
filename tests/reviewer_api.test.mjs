@@ -76,6 +76,9 @@ test('provider failures are sanitized without exposing provider error data',asyn
  for(const [upstream,expected,code] of [[401,502,'provider_auth'],[403,502,'provider_auth'],[429,429,'provider_limit'],[500,502,'provider_error']]){
   await assert.rejects(callModel(requestData(),{env,fetchImpl:async()=>new Response(JSON.stringify({error:'private provider details '+env.REVIEWER_API_KEY}),{status:upstream})}),e=>e.status===expected&&e.code===code&&!e.message.includes(env.REVIEWER_API_KEY));
  }
+ for(const [code,expected,phrase] of [['insufficient_quota','provider_quota','크레딧이 없거나'],['rate_limit_exceeded','provider_rate_limit','분당 요청량'],['unknown','provider_limit','확인할 수 없습니다']]){
+  await assert.rejects(callModel(requestData(),{env,fetchImpl:async()=>new Response(JSON.stringify({error:{code,message:'private '+env.REVIEWER_API_KEY}}),{status:429})}),e=>e.status===429&&e.code===expected&&e.message.includes(phrase)&&!e.message.includes(env.REVIEWER_API_KEY));
+ }
 });
 test('incomplete, refused and malformed output does not become a review',async()=>{
  for(const [body,code] of [[{status:'incomplete'},'incomplete_response'],[{status:'completed',output:[{content:[{type:'refusal'}]}]},'model_refusal'],[{status:'completed',output:[{content:[{type:'output_text',text:'not JSON'}]}]},'invalid_response']])await assert.rejects(callModel(requestData(),{env,fetchImpl:async()=>new Response(JSON.stringify(body))}),e=>e.code===code);

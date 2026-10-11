@@ -33,5 +33,12 @@ export function createReviewModel(CONTRACT){
   if(review?.source_id!==data.source_id||review?.scopes?.length!==1||review.scopes[0].id!==data.scope||ids.length!==6||new Set(ids).size!==6||SCOPES[data.scope].criteria.some(c=>!ids.includes(c[0])))fail('AI 응답에서 선택한 평가 기준이 누락되거나 원고가 맞지 않습니다.','invalid_response');
   return {review,model:typeof body.model==='string'?body.model:model};
  }
- return {responseSchema,modelPayload,parseModelResponse};
+ function limitError(body){
+  // Only inspect known machine codes. Never expose the provider's raw message.
+  const codes=[body?.error?.code,body?.error?.type];
+  if(codes.some(code=>['insufficient_quota','billing_hard_limit_reached'].includes(code)))return {code:'provider_quota',message:'OpenAI API 크레딧이 없거나 계정의 사용 예산 한도에 도달했습니다. 같은 요청을 반복해도 해결되지 않습니다. ChatGPT 구독과 API 이용은 별도입니다. 추가 API 비용 없이 검토하려면 ChatGPT 요청 복사 방식을 사용하세요.'};
+  if(codes.includes('rate_limit_exceeded'))return {code:'provider_rate_limit',message:'OpenAI의 분당 요청량 또는 토큰 한도를 초과했습니다. 잠시 기다린 뒤 다시 실행하세요. 계속 제한되면 1개 심사 범위와 필요한 장·페이지로 원고를 줄여 실행하세요.'};
+  return {code:'provider_limit',message:'OpenAI가 요청을 제한했습니다(HTTP 429). 원인 코드가 없어 크레딧 부족인지 일시적인 요청 제한인지 확인할 수 없습니다. 반복 실행을 멈추고 API 계정의 사용 상태를 확인하거나 ChatGPT 요청 복사 방식을 사용하세요.'};
+ }
+ return {responseSchema,modelPayload,parseModelResponse,limitError};
 }

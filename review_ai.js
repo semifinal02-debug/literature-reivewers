@@ -32,7 +32,11 @@ async function readApi(response){
 async function readOpenAI(response){
  if(!response.ok){
   // Never display raw provider errors: they can echo request credentials.
-  const messages={401:'API 키가 올바르지 않거나 만료되었습니다. 새 키를 입력하세요.',403:'이 API 키의 모델 접근 권한을 확인하세요.',404:'선택한 모델을 사용할 수 없습니다. 모델 접근 권한을 확인하세요.',429:'API 사용 한도 또는 크레딧이 부족합니다. OpenAI API 계정의 결제·한도를 확인한 뒤 실패한 범위만 다시 실행하세요.',400:'OpenAI가 요청 형식을 처리하지 못했습니다. 원고 길이·모델 접근 권한을 확인하고 다시 실행하세요.'};
+  if(response.status===429){
+   let body;try{body=await response.json();}catch{}
+   const info=aiModel.limitError(body),error=Error(info.message);error.status=429;error.code=info.code;throw error;
+  }
+  const messages={401:'API 키가 올바르지 않거나 만료되었습니다. 새 키를 입력하세요.',403:'이 API 키의 모델 접근 권한을 확인하세요.',404:'선택한 모델을 사용할 수 없습니다. 모델 접근 권한을 확인하세요.',400:'OpenAI가 요청 형식을 처리하지 못했습니다. 원고 길이·모델 접근 권한을 확인하고 다시 실행하세요.'};
   const error=Error(messages[response.status]||'OpenAI 서비스가 요청을 처리하지 못했습니다. 잠시 뒤 실패한 범위만 다시 실행하세요.');error.status=response.status;throw error;
  }
  try{return await response.json();}catch{throw Error('OpenAI 응답을 읽지 못했습니다. 다시 실행하세요.');}
@@ -56,12 +60,12 @@ async function checkAiConnection(quiet=false,signal){
   if(abort.aborted||!sameConnection(connection))throw Error('연결 설정이 변경되었거나 연결 확인이 취소되었습니다. 다시 확인하세요.');
   aiState.configured=true;aiState.model=connection.model;
   $('ai-connection-state').textContent='연결됨 · '+connection.model;$('ai-connection-state').className='badge strength';
-  status($('ai-connection-status'),'연결되었습니다. 원고를 준비하고 선택 범위 분석을 시작하세요. 연결 확인에서는 원고를 보내지 않았습니다.');
+  status($('ai-connection-status'),'키와 모델 접근 권한을 확인했습니다. 원고는 보내지 않았으며 API 크레딧·생성 요청 한도는 이 확인으로 알 수 없습니다.');
   return connection;
  }catch(error){
   resetAiConnection();
   const message=aiErrorMessage(error);
-  status($('ai-connection-status'),message,'error');throw Error(message);
+  status($('ai-connection-status'),message,'error');$('ai-help').hidden=false;throw error;
  }
 }
 function aiErrorMessage(error){
@@ -100,8 +104,8 @@ function busyAi(value){
 }
 function progressAi(task){
  $('ai-progress').innerHTML=task.snapshot.selected.map(id=>{
-  const done=task.results.has(id),failed=task.failures.has(id),running=task.current===id&&!done&&!failed;
-  return `<div style="display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:13px"><span>${esc(SCOPES[id].name)}</span><span class="badge ${done?'strength':failed?'needs_revision':'insufficient_evidence'}">${done?'완료':failed?'실패':running?'심사 중…':'대기'}</span></div>`;
+  const done=task.results.has(id),skipped=task.skipped.has(id),failed=task.failures.has(id)&&!skipped,cancelled=task.cancelled&&task.failures.get(id)==='사용자가 분석을 취소했습니다.',running=task.current===id&&!done&&!failed&&!skipped;
+  return `<div style="display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:13px"><span>${esc(SCOPES[id].name)}</span><span class="badge ${done?'strength':failed&&!cancelled?'needs_revision':'insufficient_evidence'}">${done?'완료':cancelled?'취소':skipped?'미실행':failed?'실패':running?'심사 중…':'대기'}</span></div>`;
  }).join('');
 }
 function aggregateAi(task){
@@ -110,25 +114,25 @@ function aggregateAi(task){
 }
 function cancelAiForChange(){
  if(aiState.busy&&aiState.task){aiState.task.changed=true;aiState.task.controller.abort();status($('ai-run-status'),'원고·설정이 변경되어 진행 중인 리뷰를 취소했습니다. 현재 원고로 다시 실행하세요.','warn');}
- if(!aiState.busy){aiState.task=null;$('retry-ai').hidden=true;$('ai-progress').replaceChildren();$('ai-run-status').hidden=true;}
+ if(!aiState.busy){aiState.task=null;$('retry-ai').hidden=true;$('ai-progress').replaceChildren();$('ai-run-status').hidden=true;$('ai-help').hidden=true;}
  refreshAiInfo();
 }
 async function runAi(retry=false){
  if(aiState.busy)return;
  let s,task,connection;
  try{
-  s=snapshot();show('connect');refreshAiInfo();busyAi(true);
+  s=snapshot();show('connect');refreshAiInfo();busyAi(true);$('ai-help').hidden=true;
   if(retry&&aiState.task&&aiState.task.source_id===sourceId(s)){
    task=aiState.task;task.controller=new AbortController();task.changed=false;task.cancelled=false;
   }else{
-   task={snapshot:s,source_id:sourceId(s),controller:new AbortController(),results:new Map(),failures:new Map(),current:null,changed:false,cancelled:false};
+   task={snapshot:s,source_id:sourceId(s),controller:new AbortController(),results:new Map(),failures:new Map(),skipped:new Set(),current:null,changed:false,cancelled:false};
   }
   aiState.task=task;$('retry-ai').hidden=true;
   connection=await checkAiConnection(true,task.controller.signal);
   if(task.controller.signal.aborted||sourceId(snapshot())!==sourceId(s))throw Error('연결 확인 중 원고·설정이 바뀌었거나 취소되었습니다. 현재 원고로 다시 실행하세요.');
   if(!sameConnection(connection))throw Error('AI 서비스 연결 설정이 바뀌었습니다. 다시 실행하세요.');
   if(!retry){state.report=null;state.done.clear();renderReport();}
-  const pending=s.selected.filter(id=>!task.results.has(id));for(const id of pending)task.failures.delete(id);
+  const pending=s.selected.filter(id=>!task.results.has(id));for(const id of pending){task.failures.delete(id);task.skipped.delete(id);}
   progressAi(task);
   for(let index=0;index<pending.length;index++){
    const id=pending[index];if(task.controller.signal.aborted)break;
@@ -144,7 +148,7 @@ async function runAi(retry=false){
     if(task.controller.signal.aborted)break;
     task.failures.set(id,aiErrorMessage(error));
     if([400,401,403,404,429,503].includes(error.status)||error instanceof TypeError){
-     for(const rest of pending.slice(index+1))task.failures.set(rest,'연결·인증 또는 요청 한도 문제로 실행하지 않았습니다.');break;
+     for(const rest of pending.slice(index+1)){task.skipped.add(rest);task.failures.set(rest,'앞선 요청이 제한되어 실행하지 않았습니다.');}break;
     }
    }
    progressAi(task);
@@ -160,17 +164,19 @@ async function runAi(retry=false){
   }
   $('retry-ai').hidden=!task.failures.size||task.changed;
   const remaining=s.selected.filter(id=>!task.results.has(id));
-  if(task.cancelled){for(const id of remaining)task.failures.set(id,'사용자가 분석을 취소했습니다.');$('retry-ai').hidden=!remaining.length;status($('ai-run-status'),`분석을 취소했습니다. 완료된 ${task.results.size}개 범위는 보고서에 보존했습니다.`,'warn');}
-  else if(task.failures.size)status($('ai-run-status'),`${task.results.size}/${s.selected.length}개 범위 완료. 완료된 결과는 ‘리뷰 보고서’에서 볼 수 있습니다.\n${[...task.failures].map(([id,error])=>SCOPES[id].name+': '+error).join('\n')}`,'warn');
+  if(task.cancelled){for(const id of remaining)task.failures.set(id,'사용자가 분석을 취소했습니다.');progressAi(task);$('retry-ai').hidden=!remaining.length;status($('ai-run-status'),task.results.size?`분석을 취소했습니다. 완료된 ${task.results.size}개 범위는 보고서에 보존했습니다.`:'분석을 취소했습니다. 생성된 리뷰 보고서는 없습니다.','warn');}
+  else if(task.failures.size){$('ai-help').hidden=false;status($('ai-run-status'),`${task.results.size}/${s.selected.length}개 범위 완료. ${task.results.size?'완료된 결과는 ‘리뷰 보고서’에서 볼 수 있습니다.':'생성된 리뷰 보고서는 없습니다.'}\n${[...task.failures].map(([id,error])=>SCOPES[id].name+': '+error).join('\n')}`,'warn');}
   else status($('ai-run-status'),`${task.results.size}개 범위의 AI 리뷰가 완료되었습니다. 원문 인용을 대조한 보고서를 열었습니다.`);
  }catch(error){
   status($('ai-run-status'),aiErrorMessage(error),'error');
+  $('ai-help').hidden=false;
   if(task&&!task.changed&&task.failures.size)$('retry-ai').hidden=false;
  }
  finally{busyAi(false);}
 }
 $('run-ai').onclick=()=>runAi();$('ai-start').onclick=()=>runAi();$('check-ai').onclick=()=>checkAiConnection().catch(()=>{});$('retry-ai').onclick=()=>runAi(true);
 $('cancel-ai').onclick=()=>{const task=aiState.task;if(task){task.cancelled=true;task.controller.abort();}};
+$('ai-use-chatgpt').onclick=()=>{generatePrompt();if(state.prompt)$('manual-review').scrollIntoView({behavior:'smooth',block:'start'});};
 function aiSettingsChanged(resetTask=false){
  if(aiState.busy){if(aiState.task)aiState.task.changed=true;aiState.task?.controller.abort();status($('ai-run-status'),'AI 연결 설정이 변경되어 분석을 취소했습니다. 다시 실행하세요.','warn');}
  if(resetTask&&!aiState.busy){aiState.task=null;$('retry-ai').hidden=true;$('ai-progress').replaceChildren();}

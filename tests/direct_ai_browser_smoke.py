@@ -32,7 +32,7 @@ def verify():
             page.locator('#load-demo').click()
             fixture = review_fixture(page.evaluate('snapshot()'), page.evaluate('sourceId(snapshot())'))
             failures = {'methods': 1}
-            provider = {'quota': False, 'stall': None}
+            provider = {'quota': False, 'limit_code': 'insufficient_quota', 'stall': None}
 
             def model_reply(scope, model):
                 review = deepcopy(fixture)
@@ -66,7 +66,7 @@ def verify():
                 assert schema['properties']['source_id']['enum'] == [fixture['source_id']]
                 calls.append(scope)
                 if provider['quota']:
-                    route.fulfill(status=429, json={'error': {'message': 'echo ' + KEY}})
+                    route.fulfill(status=429, json={'error': {'code': provider['limit_code'], 'message': 'echo ' + KEY}})
                 elif failures.get(scope, 0):
                     failures[scope] -= 1
                     route.fulfill(status=500, json={'error': {'message': 'echo ' + KEY}})
@@ -145,6 +145,30 @@ def verify():
             assert '크레딧' in page.locator('#ai-run-status').inner_text()
             assert KEY not in page.locator('#ai-run-status').inner_text()
             assert page.evaluate('state.report === null')
+            assert '생성된 리뷰 보고서는 없습니다' in page.locator('#ai-run-status').inner_text()
+            assert '완료된 결과는' not in page.locator('#ai-run-status').inner_text()
+            assert page.locator('#ai-progress .badge').all_text_contents() == ['실패'] + ['미실행'] * 5
+            assert page.locator('#ai-help').is_visible()
+            page.screenshot(path='/workspace/plans/review-quota-help.png', full_page=True)
+            # An API-free request preserves the original scope and exact manuscript.
+            before = len(calls)
+            page.locator('#ai-use-chatgpt').click()
+            assert page.locator('#manual-review').evaluate('(x) => x.open')
+            assert 'L1: [합성 예시' in page.locator('#review-prompt').input_value()
+            assert 'planning' in page.locator('#review-prompt').input_value()
+            assert KEY not in page.locator('#review-prompt').input_value()
+            assert len(calls) == before
+            # Rate limits and unknown 429 responses must not be labelled confirmed credit failures.
+            for code, expected in [('rate_limit_exceeded', '분당 요청량'), (None, '확인할 수 없습니다')]:
+                provider['limit_code'] = code
+                before = len(calls)
+                page.locator('#ai-start').click()
+                page.wait_for_function('!aiState.busy && aiState.task?.failures.size === 6')
+                assert len(calls) == before + 1
+                assert expected in page.locator('#ai-run-status').inner_text()
+                assert '크레딧이 없거나' not in page.locator('#ai-run-status').inner_text()
+                assert KEY not in page.locator('#ai-run-status').inner_text()
+                assert page.locator('#ai-progress .badge').all_text_contents() == ['실패'] + ['미실행'] * 5
             provider['quota'] = False
             # Cancelling keeps completed scopes; a delayed response cannot override them.
             provider['stall'] = 'methods'
@@ -186,7 +210,7 @@ def verify():
     finally:
         server.shutdown()
         server.server_close()
-    print('PASS: static browser direct OpenAI protocol, six scopes, partial failure/retry, quota stop, cancel, reload/key clearing, model switch, secret-free exports/storage, fixed destination, mobile. Synthetic provider; no live AI review.')
+    print('PASS: static browser OpenAI protocol, six scopes, retry, distinct quota/rate/unknown errors, honest skipped/zero-report state, API-free ChatGPT request, cancel, key clearing, two models, no secret persistence, fixed destination, mobile. Synthetic provider; no live AI review.')
 
 
 if __name__ == '__main__':
