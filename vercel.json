@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "npm run build",
+  "outputDirectory": "preview",
+  "functions": {
+    "api/review.mjs": {"maxDuration": 180, "includeFiles": "review_contract.json"},
+    "api/status.mjs": {"includeFiles": "review_contract.json"}
+  }
+}

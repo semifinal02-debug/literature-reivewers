@@ -4,6 +4,12 @@
 
 [웹앱 열기](https://semifinal02-debug.github.io/literature-reivewers/) · [수정본 미리보기](https://semifinal02-debug.github.io/literature-reivewers/preview/) · [기존 장별 요청 도구](https://semifinal02-debug.github.io/literature-reivewers/chapters/)
 
+## 직접 AI 분석 미리보기
+
+`/preview/`에 **앱에서 직접 AI 리뷰 실행** 기능을 추가했습니다. PDF를 넣고 범위를 선택하면 서버를 통해 OpenAI가 범위별로 심사합니다. 진행 상태·부분 실패·실패한 범위만 재시도를 지원합니다. 실제 실행에는 서버 API 키와 API 서버 배포가 필요하며 GitHub Pages만으로는 AI 호출을 제공할 수 없습니다.
+
+[Vercel 연결과 키 설정 안내](docs/DIRECT-AI.md)를 따라 같은 저장소로 별도 미리보기 서버를 만들 수 있습니다. 서버 환경 변수는 `REVIEWER_API_KEY`, `REVIEWER_ACCESS_TOKEN`, `REVIEWER_MODEL`입니다. API 키를 채팅·GitHub·브라우저에 입력하지 마세요. 기본 `index.html`은 미리보기 확인 전까지 기존 ChatGPT 복사 방식으로 유지합니다. 아래 사용 설명은 현재 기본 앱 기준입니다.
+
 ## 실제 리뷰 받기
 
 1. **논문 & 연구 설정**에서 PDF를 선택하거나 본문을 붙여 넣습니다. 학위 수준·연구 유형·제공 범위·연구 질문을 설정합니다.

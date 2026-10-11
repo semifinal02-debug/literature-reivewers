@@ -1,0 +1,11 @@
+{
+  "name": "construction-robotics-reviewer",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=22"},
+  "scripts": {
+    "start": "node server/dev.mjs",
+    "build": "node scripts/verify_preview.mjs",
+    "test": "node --test tests/reviewer_api.test.mjs"
+  }
+}

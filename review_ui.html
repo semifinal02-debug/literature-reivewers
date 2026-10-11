@@ -18,7 +18,7 @@
  <nav class="rail-nav" aria-label="주 메뉴">
   <button data-view="upload" class="active"><span>01</span>논문 & 연구 설정</button>
   <button data-view="scope"><span>02</span>심사 범위 선택</button>
-  <button data-view="connect"><span>03</span>ChatGPT 리뷰 연결</button>
+  <button data-view="connect"><span>03</span>AI 리뷰 실행</button>
   <button data-view="report"><span>04</span>리뷰 보고서</button>
  </nav>
  <div class="rail-bottom"><strong>원문 근거를 남기는 리뷰</strong>연구 공백 → 연구 설계 → 결과 해석<br><br>기술 · 안전 · 대책 · 작업계획<br>석·박사 논문 / 자율주행 제외</div>
@@ -36,7 +36,7 @@
      <small style="display:block;font-size:11px;margin-top:6px">PDF의 실제 페이지 순서입니다. 전체 추출은 두 칸을 비우세요.</small>
      <div id="upload-status" class="status" role="status" aria-live="polite" hidden></div><progress id="upload-progress" max="100" value="0" hidden></progress>
      <details class="manuscript-box" open><summary><span>추출 본문 확인 · 직접 붙여넣기</span><small id="char-count">0자 · 0줄</small></summary><textarea id="manuscript" placeholder="초록, 서론, 방법, 결과 또는 전체 논문을 넣으세요. PDF의 표·수식은 원본과 비교해 정리해 주세요." aria-label="검토할 논문 본문" spellcheck="false"></textarea></details>
-     <div class="notice mt">파일은 이 브라우저에서 읽습니다. AI 검토는 아래 단계에서 만든 요청을 ChatGPT에 보내 실행합니다.</div>
+     <div class="notice mt">PDF는 이 브라우저에서 읽습니다. ‘AI 리뷰 실행’을 누르면 추출한 본문과 연구 설정을 AI 서비스로 보내 선택한 범위를 심사합니다.</div>
     </div>
     <div class="card profile-card"><div class="card-head"><h2>연구 맥락</h2><small>논문에 맞춘 평가 기준</small></div>
      <label class="field">논문 제목<input id="paper-title" placeholder="논문 제목 또는 연구 주제"></label>
@@ -54,17 +54,27 @@
    <div class="section-intro"><div><h2>어떤 리뷰어에게 맡길까요?</h2><p>범위마다 6개 기준으로 평가합니다. 연구 형태와 제공 자료에 따라 판단을 보류할 수 있습니다.</p></div><button class="small" id="select-all">모든 범위 선택</button></div>
    <div id="scope-grid" class="scope-grid"></div>
    <div class="card mt"><div class="card-head"><h3>결과의 ‘유의미함’을 나누어 평가합니다</h3><small>하나의 종합 점수로 합치지 않습니다</small></div><div class="metric-grid"><div><strong style="font-size:12px">통계적 근거 · 효과 크기</strong><p class="muted" style="font-size:12px">검정·가정·반복 수·신뢰구간 / 변화의 크기와 불확실성</p></div><div><strong style="font-size:12px">기술 성능 · 현장 의미</strong><p class="muted" style="font-size:12px">성공률·품질·시간·오차 / 생산성·안전 노출·비용·운영 가능성</p></div></div></div>
-   <div class="scope-footer"><p id="scope-selection">3개 범위 · 18개 평가 기준</p><div class="actions"><button id="run-precheck">예비 점검 실행</button><button id="make-review" class="primary">AI 심사 요청 만들기 →</button></div></div>
-   <p class="review-limits">예비 점검은 문구·보고 항목을 찾는 규칙 기반 도구입니다. 공백의 타당성이나 방법론의 적합성을 확정하는 AI 심사는 ChatGPT 리뷰를 가져온 뒤 표시됩니다.</p>
+   <div class="scope-footer"><p id="scope-selection">3개 범위 · 18개 평가 기준</p><div class="actions"><button id="run-precheck">예비 점검</button><button id="make-review">ChatGPT 요청</button><button id="run-ai" class="primary">AI 리뷰 실행 →</button></div></div>
+   <p class="review-limits">선택한 범위마다 AI 요청을 1회 실행합니다. API 이용 요금은 연결한 계정에서 부과됩니다. 예비 점검은 문구를 찾는 규칙 기반 도구입니다.</p>
   </section>
   <section id="connect-view" hidden>
+   <div class="section-intro"><div><h2>앱에서 AI 리뷰 실행</h2><p>선택 범위별 심사 → 원문 인용 대조 → 리뷰 보고서</p></div><span class="badge" id="ai-connection-state">서비스 연결 필요</span></div>
+   <div class="card">
+    <div class="card-head"><h3>AI 서비스 연결</h3><small>서비스 주소와 앱 접속 암호</small></div>
+    <div class="row"><label class="field">AI 서비스 주소<input id="ai-service-url" type="url" placeholder="Vercel에 배포한 서비스 주소 · 같은 서비스면 비워두기" autocomplete="url"></label><label class="field">앱 접속 암호<input id="ai-access" type="password" placeholder="서비스 관리자가 정한 앱 접속 암호" autocomplete="current-password"></label></div>
+    <div class="actions"><button id="check-ai">연결 확인</button><small>AI API 키는 서버에 보관합니다. 여기에 API 키를 입력하지 마세요.</small></div>
+    <div id="ai-connection-status" class="status" role="status" aria-live="polite" hidden></div>
+   </div>
+   <div class="card mt"><div class="card-head"><h3>범위별 AI 심사</h3><small id="ai-run-info">심사 범위를 선택하고 실행하세요</small></div><div class="actions"><button id="ai-start" class="primary">선택 범위 분석 시작</button><button id="cancel-ai" hidden>분석 취소</button><button id="retry-ai" hidden>실패한 범위만 다시 실행</button></div><div id="ai-progress" aria-live="polite" style="margin-top:18px"></div><div id="ai-run-status" class="status" role="status" aria-live="polite" hidden></div><p class="review-limits">논문 본문·연구 설정·평가 기준이 서버와 OpenAI로 전송됩니다. 원본 PDF 파일은 전송하지 않습니다. 서버는 원고를 파일에 저장하지 않으며, 모델 요청에는 저장 안 함 옵션을 사용합니다.</p></div>
+   <details class="mt" id="manual-review"><summary style="cursor:pointer;font-size:13px;color:var(--muted);margin-bottom:18px">다른 방법: ChatGPT 요청 복사 · 기존 리뷰 가져오기</summary>
    <h2>ChatGPT의 실제 리뷰를 보고서로 연결</h2><p class="step-copy" style="margin-top:8px">선택한 범위와 줄 번호가 포함된 요청을 보냅니다. 응답을 가져오면 원문 인용을 대조하고 범위별로 정리합니다.</p>
    <div class="card"><div class="card-head"><h3>논문 심사 요청</h3><small id="prompt-info">심사 범위를 먼저 선택하세요</small></div><div class="actions"><button id="regenerate-prompt" class="primary">현재 원고로 요청 만들기</button><button id="copy-prompt">요청 복사</button><button id="download-prompt">요청 .txt 저장</button></div><textarea id="review-prompt" class="prompt-area" readonly aria-label="ChatGPT에 보낼 논문 검토 요청" placeholder="논문을 준비하고 심사 범위를 선택하면 요청이 생성됩니다."></textarea><div class="notice">긴 논문은 한 장 또는 필요한 페이지부터 검토하세요. 이 앱은 외부 문헌 검색이나 원자료 재검정을 수행하지 않습니다.</div></div>
    <div class="review-route"><div class="route-step"><div class="num">01 / COPY</div><h3>심사 요청 복사</h3><p>원고·평가 기준·응답 형식을 한 번에 복사합니다.</p><button class="small" id="route-copy">요청 복사</button></div><div class="route-step"><div class="num">02 / REVIEW</div><h3>ChatGPT에서 심사</h3><p>새 대화에 붙여넣고 JSON 형식의 응답을 받습니다.</p><a href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT 열기 ↗</a></div><div class="route-step"><div class="num">03 / IMPORT</div><h3>응답을 보고서로</h3><p>아래에 응답을 붙여 넣거나 JSON 파일로 가져옵니다.</p><button class="small" id="choose-review">리뷰 파일 선택</button><input type="file" id="review-file" accept=".json,.txt,text/plain,application/json" hidden></div></div>
    <div class="card mt"><div class="card-head"><h3>받은 리뷰 응답</h3><small>JSON 코드 블록도 붙여넣을 수 있습니다</small></div><textarea id="review-response" class="import-area" placeholder='ChatGPT의 {"source_id": ..., "summary": ..., "scopes": ...} 응답 전체를 넣으세요.' aria-label="ChatGPT의 리뷰 JSON 응답"></textarea><div class="actions"><button class="primary" id="import-review">원문 근거 대조하고 보고서 열기</button></div><div id="import-status" class="status" role="status" aria-live="polite" hidden></div></div>
+   </details>
   </section>
   <section id="report-view" hidden>
-   <div id="report-empty" class="card"><h2>아직 리뷰 보고서가 없습니다</h2><p class="step-copy" style="margin-top:9px">논문을 넣고 예비 점검을 실행하거나 ChatGPT 심사 응답을 가져오세요.</p><div class="actions"><button data-view="upload">논문 준비</button><button data-view="connect" class="primary">ChatGPT 리뷰 연결</button></div></div>
+   <div id="report-empty" class="card"><h2>아직 리뷰 보고서가 없습니다</h2><p class="step-copy" style="margin-top:9px">논문을 준비한 뒤 AI 리뷰를 실행하세요. 연결 전에는 예비 점검도 사용할 수 있습니다.</p><div class="actions"><button data-view="upload">논문 준비</button><button data-view="connect" class="primary">AI 리뷰 실행</button></div></div>
    <div id="report-content" hidden></div>
   </section>
   <p class="footer">Smart Construction Robotics · 원문 근거와 수정 행동을 연결하는 연구 검토 워크스페이스</p>
@@ -77,6 +87,7 @@
 <script>const APP_DATA=JSON.parse(document.getElementById('app-data').textContent);
 __PDF_IMPORT_JS__
 __WORKBENCH_JS__
+__AI_JS__
 </script>
 </body>
 </html>
