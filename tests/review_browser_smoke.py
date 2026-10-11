@@ -92,6 +92,18 @@ def verify():
             text = page.locator('#manuscript').input_value()
             assert '방법론 전용 원고' in text and '서론 전용 원고' not in text
             assert '[PDF 2페이지]' in text
+            # PDF upload extracts the source; it must not fabricate an AI review.
+            page.locator('[data-view=scope]').first.click()
+            page.locator('#make-review').click()
+            assert '방법론 전용 원고' in page.locator('#review-prompt').input_value()
+            page.locator('#review-response').fill('   ')
+            page.locator('#import-review').click()
+            assert '응답 칸이 비어' in page.locator('#import-status').inner_text()
+            assert '요청 복사' in page.locator('#import-status').inner_text()
+            assert '유효한 JSON' not in page.locator('#import-status').inner_text()
+            assert page.evaluate('state.report === null')
+            assert page.locator('#manuscript').input_value() == text
+            page.locator('[data-view=upload]').first.click()
             for name, data, message in [('blank.pdf', make_pdf([None]), 'OCR'),
                                         ('encrypted.pdf', make_pdf(['locked'], encrypted=True), '암호화'),
                                         ('corrupt.pdf', b'%PDF-1.7\ninvalid', '읽지 못했습니다')]:

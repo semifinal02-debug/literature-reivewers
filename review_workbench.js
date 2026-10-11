@@ -136,6 +136,7 @@ function checkedEvidence(input,s,warnings){
 function parseReview(raw,s){
  if(typeof raw!=='string'||raw.length>2000000)throw Error('리뷰 응답은 2MB 이하 텍스트여야 합니다.');
  let text=raw.trim();if(/^```(?:json)?\s*\n/i.test(text)&&/\n```\s*$/.test(text))text=text.replace(/^```(?:json)?\s*\n/i,'').replace(/\n```\s*$/,'');
+ if(!text.trim())throw Error('받은 리뷰 응답 칸이 비어 있습니다. 위의 ‘요청 복사’로 ChatGPT에 심사를 요청한 뒤, 받은 JSON 답변 전체를 이 칸에 붙여넣으세요. 논문 업로드는 본문을 읽는 단계입니다.');
  let data;try{data=JSON.parse(text);}catch{throw Error('유효한 JSON 응답이 아닙니다. ChatGPT의 JSON 객체 전체를 복사하세요.');}
  if(!data||typeof data!=='object'||Array.isArray(data))throw Error('리뷰 응답은 JSON 객체여야 합니다.');
  if(data.source_id!==sourceId(s))throw Error('이 리뷰는 현재 원고·설정과 일치하지 않습니다. 현재 원고로 요청을 다시 만들고 받은 응답을 사용하세요.');
