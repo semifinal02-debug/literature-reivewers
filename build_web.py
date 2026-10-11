@@ -28,12 +28,25 @@ def web_data():
             'fonts': json.loads((vendor / 'fonts.json').read_text())}
 
 
-def build():
+def build_chapters():
     data = json.dumps(web_data(), ensure_ascii=False, separators=(',', ':')).replace('<', '\\u003c')
     template = (ROOT / 'ui.html').read_text()
     assert template.count('__APP_DATA_JSON__') == 1
     assert template.count('__PDF_IMPORT_JS__') == 1
-    (ROOT / 'index.html').write_text(template.replace('__APP_DATA_JSON__', data).replace('__PDF_IMPORT_JS__', (ROOT / 'pdf_browser.js').read_text()))
+    output = template.replace('__APP_DATA_JSON__', data).replace('__PDF_IMPORT_JS__', (ROOT / 'pdf_browser.js').read_text())
+    (ROOT / 'chapters').mkdir(exist_ok=True)
+    (ROOT / 'chapters/index.html').write_text(output)
+
+
+def build():
+    # Imported here so build_preview can reuse the verified asset loader above.
+    from build_preview import build as build_workbench
+    build_workbench()
+    preview = (ROOT / 'preview/index.html').read_text()
+    (ROOT / 'index.html').write_text(preview.replace(
+        '<span class="preview-pill">수정본 미리보기</span>',
+        '<span class="preview-pill">원문 근거 기반 리뷰</span>'))
+    build_chapters()
 
 
 if __name__ == '__main__':

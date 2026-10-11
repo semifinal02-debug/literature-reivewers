@@ -22,7 +22,7 @@ def verify():
             page.set_content('<html lang="ko"><meta charset="utf-8"><style>section{break-after:page;font:20px sans-serif}</style><section><h1>1장 서론</h1><p>서론전용원고: 건설 로봇의 안전 대책.</p></section><section><h1>2장 문헌 검토</h1><p>문헌전용원고: 기술과 작업계획을 비교한다.</p></section></html>')
             pdf = page.pdf(format='A4')
             base = f'http://127.0.0.1:{server.server_port}'
-            page.goto(base)
+            page.goto(base + '/chapters/')
             page.wait_for_selector('.chapter-button')
             errors, requests = [], []
             page.on('pageerror', lambda error: errors.append(str(error)))
@@ -62,7 +62,7 @@ def verify():
             page.set_viewport_size({'width':390, 'height':844})
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
             # An opaque sandboxed iframe approximates a preview without an API or worker permission.
-            page.set_content(f'<iframe src="{base}" sandbox="allow-scripts allow-downloads" style="width:100%;height:900px"></iframe>')
+            page.set_content(f'<iframe src="{base}/chapters/" sandbox="allow-scripts allow-downloads" style="width:100%;height:900px"></iframe>')
             frame = page.frame_locator('iframe')
             frame.locator('.chapter-button').first.wait_for()
             frame.locator('#file').set_input_files({'name':'한글논문.pdf', 'mimeType':'application/pdf', 'buffer':pdf})

@@ -81,7 +81,7 @@ class HTTPTests(unittest.TestCase):
 
     def test_functional_request(self):
         with urllib.request.urlopen(self.base + '/') as response:
-            self.assertIn('내 논문에 맞춘 리뷰어 팀', response.read().decode())
+            self.assertIn('논문 리뷰 스튜디오', response.read().decode())
         with urllib.request.urlopen(self.base + '/api/roles') as response:
             self.assertEqual(len(json.load(response)), 7)
         payload = json.dumps({'manuscript': '로봇 고장 시 작업을 중지한다.', 'roles': ['safety']}).encode()

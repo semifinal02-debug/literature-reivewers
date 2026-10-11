@@ -1,4 +1,4 @@
-"""Local review request app with in-memory PDF import; no external requests."""
+"""Local review workbench with in-memory PDF import; no external requests."""
 import argparse
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -24,12 +24,15 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
-        if self.path == "/":
-            self.respond(200, (ROOT / "index.html").read_bytes(), "text/html; charset=utf-8")
+        pages = {'/': 'index.html', '/preview/': 'preview/index.html',
+                 '/preview/index.html': 'preview/index.html', '/chapters/': 'chapters/index.html',
+                 '/chapters/index.html': 'chapters/index.html'}
+        if self.path in pages:
+            self.respond(200, (ROOT / pages[self.path]).read_bytes(), "text/html; charset=utf-8")
         elif self.path == "/api/roles":
             self.respond(200, ROLES)
         elif self.path == "/health":
-            self.respond(200, {"status": "ok", "mode": "prompt_only", "pdf_import": True})
+            self.respond(200, {"status": "ok", "mode": "review_workspace", "ai_connection": "chatgpt_copy_import", "pdf_import": True})
         else:
             self.respond(404, {"error": "찾을 수 없습니다."})
 
