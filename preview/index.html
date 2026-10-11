@@ -394,6 +394,7 @@ async function openProject(file){
   $('manuscript').value=s.text;$('paper-title').value=s.profile.title;$('degree').value=s.profile.degree;$('study-type').value=s.profile.study_type;$('research-question').value=s.profile.question;$('provided-sections').value=s.profile.sections;$('prof-feedback').value=s.profile.feedback;$('coverage').value=s.coverage;
   state.fileName=fileName;state.pdf=null;state.demo=!!s.demo;invalidate();
   document.querySelectorAll('[name=scope]').forEach(x=>x.checked=s.selected.includes(x.value));state.prompt='';$('review-prompt').value='';$('review-response').value=data.response??'';state.report=report;
+  state.scope='all';state.filter='all';state.tab='criteria';
   state.done=new Set(Array.isArray(data.done)&&report?data.done.filter(x=>report.comments.some(c=>c.id===x)):[]);counts();show(report?'report':'upload');toast('작업 파일을 열었습니다.');
  }catch(error){toast('작업 파일을 열지 못했습니다: '+error.message);}
  finally{$('project-file').value='';}

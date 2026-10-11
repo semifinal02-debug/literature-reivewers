@@ -157,6 +157,7 @@ def verify():
             assert page.locator('#report-content img').count() == 0
             assert not page.evaluate('Boolean(window.injected)')
             # Changing the manuscript clears the old review and rejects old response.
+            page.locator('#report-scope').select_option('safety')
             page.locator('[data-view=upload]').first.click()
             page.locator('#manuscript').fill('수정 원고\n새 내용')
             page.locator('[data-view=connect]').first.click()
@@ -167,6 +168,7 @@ def verify():
             page.locator('#project-file').set_input_files({'name': '작업.json', 'mimeType': 'application/json', 'buffer': project_bytes})
             page.locator('#report-view:not([hidden])').wait_for()
             assert page.locator('.stat.revision strong').inner_text() == '2'
+            assert page.locator('.criterion').count() == 36
             page.locator('[data-report-tab=comments]').click()
             assert page.locator('.finding.done').count() == 1
             # Invalid project must leave the current manuscript and report intact.
